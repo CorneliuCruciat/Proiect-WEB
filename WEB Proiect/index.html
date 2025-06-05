@@ -1,0 +1,274 @@
+ <!DOCTYPE html>
+<html lang="ro" class="">
+<head>
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+  <title>Blog Auto</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Define the API URL(url-ul de acces servicii DB)
+    const apiUrl = 'http://localhost:8055/api/News/';
+
+    tailwind.config = {
+      darkMode: 'class',
+    }
+    function showBtnThemeText()
+    {
+       var vBtn = document.getElementById("toggleDark");
+       console.log(vBtn);
+      if (vBtn.innerHTML === "🌙 Dark Mode") {
+        console.log("schimba in light");
+        vBtn.innerHTML = "☀️ Light Mode";
+      } else {
+        console.log("schimba in dark");
+        vBtn.innerHTML = "🌙 Dark Mode";
+      }
+    }  
+
+	function ShowArticles()
+	{
+		// Make a GET request
+		fetch(apiUrl+"GetAllNews")
+		  .then(response => {
+			if (!response.ok) {
+			  throw new Error('Eroare obtinere date articole !');
+			}
+			return response.json();
+		  })
+		  .then(data => {
+			console.log(data);
+			//selectare container stiri
+			let vContainerArticles = document.getElementById('articlesection');
+			for(let i = 0; i < data.length; i++) {
+				//object data cu cate un articol provenit din DB 
+				let obj = data[i];
+				
+				//****creare div container pentru articol***
+				let vArticle = document.createElement("div");
+				//setare atribute element din container articol
+				//setare class		
+				vArticle.setAttribute("class", "article-card");				
+				//adaugare atribute la clasa CSS
+				vArticle.classList.add("bg-white", "dark:bg-gray-800", "dark:text-gray-200",
+										"rounded-2xl", "shadow", "p-4", "animate-fadeIn",
+										"transition", "transform", "duration-300", "ease-in-out",
+										"hover:scale-105", "hover:shadow-xl");
+				
+				//***creare element imagine***
+				let vImg = document.createElement("img");
+				//setare atribute imagine
+				//setare sursa imagine = date preluate din DB si convertite in format Base64 
+				vImg.setAttribute("src", "data:image/png;base64,"+obj.ImageBody);
+				//setare atribut ce tine pe post de titlu
+				vImg.setAttribute("alt", obj.Title);
+				//setare class CSS pentru imagine
+				vImg.setAttribute("class", "rounded-xl mb-4 h-49 w-full object-cover");
+				//setare atribute pentru afisare imagine de loading pana sistemul afiseaza imaginea provenita din DB
+				vImg.setAttribute("loading", "lazy");
+				//adaugare imagine la div-ul container de articol 
+				vArticle.appendChild(vImg);
+				
+				//***creare element titlu in header***
+				let vHeader = document.createElement("h2");
+				//setare class
+				vHeader.setAttribute("class", "text-xl font-semibold mb-2");				
+				//adaugare textul Titlului 
+				vHeader.innerHTML = obj.Title;
+				//adaugare header titlu la div-ul container de articol
+				vArticle.appendChild(vHeader);
+
+				//***creare element paragraf in care se introduce o scurta descriere ***
+				let vShortDescription = document.createElement("h2");
+				//setare class		
+				vShortDescription.setAttribute("class", "text-gray-600 dark:text-gray-400 mb-4");					
+				//adaugare textul scurta descriere 
+				if (obj.Description.length > 100)
+					//din stirile mai mari se vor prelua doar primele 100 de caractere, iar la finalul caracterelor se adauga ...
+					vShortDescription.innerHTML = obj.Description.substring(0,100).concat("<b> ...</b>");
+				else
+					vShortDescription.innerHTML = obj.Description;
+				//adaugare scurta descriere la div-ul container de articol
+				vArticle.appendChild(vShortDescription);
+				
+				//***creare element anchor cu link catre stirea intreaga***
+				let vAnchor = document.createElement("a");
+				//setare id tag identic cu obj.NewsId din DB
+				vAnchor.setAttribute("id",obj.NewsId);
+				//setare class	
+				vAnchor.setAttribute("class", "text-blue-600 hover:underline dark:text-blue-400");				
+				//*****************************
+				//setare atribute necesare pentru a deschide fereastra modala cu stirea detaliata
+				vAnchor.href = "#viewarticlecomplet";
+				vAnchor.setAttribute("data-toggle","modal");
+				vAnchor.setAttribute("data-target","#viewarticlecomplet");
+				//*********************************
+				//adaugare textul pentru anchor 
+				vAnchor.innerHTML = "Citește mai mult";
+				//atasare eveniment pentru afisare stire detaliata
+				vAnchor.addEventListener("click", function() { ShowNewsDetails(this.id); });
+				//adaugare anchor la div-ul container de articol
+				vArticle.appendChild(vAnchor);
+				
+				//adaugare articol complet la containerul de articole
+				vContainerArticles.appendChild(vArticle);
+				
+				/*
+				console.log(obj.Title);
+				console.log(obj.Description);
+				console.log(obj.ImageBody);
+				console.log(obj.NewsId);
+				*/
+			}
+		  })
+		  .catch(error => {
+			console.error('Eroare:', error);
+		  });
+	}
+	
+	function ShowNewsDetails(pNewsId)
+	{
+		console.log(pNewsId);
+		
+		// Make a GET request
+		fetch(apiUrl+"GetNewsById/"+pNewsId)
+		  .then(response => {
+			if (!response.ok) {
+			  throw new Error('Eroare obtinere date articole !');
+			}
+			return response.json();
+		  })
+		  .then(data => {
+					console.log(data);
+					document.getElementById('NewsModalTitle').innerHTML = data.Title;
+					document.getElementById('NewsModalDescription').innerHTML = data.Description;
+					document.getElementById('NewsModalImage').setAttribute("src", "data:image/png;base64,"+data.ImageBody);
+					document.getElementById('NewsModalOwner').innerHTML = "<b>Creat de : </b>"+data.CreatedBy+"<b> la data : </b> "+data.CreatedOn;
+					
+			})
+		.catch(error => { console.error('Eroare:', error); });
+	}
+  </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans">
+  <header class="bg-white dark:bg-gray-800 shadow p-6">
+    <div class="container mx-auto flex justify-between items-center">
+      <div>
+        <h1 class="text-5xl font-bold">Blog Auto</h1>
+        <p class="text-gray-500 dark:text-gray-400">Noutăți, review-uri și pasiune pentru mașini</p>
+      </div>
+      <button id="toggleDark" class="bg-gray-400 text-xl px-6 py-4 rounded hover:bg-gray-600 dark:bg-gray-700 dark:text-white" onclick="showBtnThemeText();">
+        🌙 Dark Mode
+      </button>
+    </div>
+  </header>
+
+  <!-- Imagine sub navbar -->
+<div class="relative w-full h-96 overflow-hidden">
+  <img src="https://porschepictures.flowcenter.de/pmdb/thumbnail.cgi?id=283830&w=1080&h=609&crop=1&public=1&cs=52a3e16ebeee6f12" alt="Banner imagine" class="w-full h-full object-cover">
+  <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+    <h2 class="text-white text-4xl md:text-5xl font-bold">Bine ai venit!</h2>
+  </div>
+</div>
+  
+  <!--Scris boldit de sub navbar-->
+  <header id="services" class="bg-gray-100 dark:bg-gray-900 py-24">
+  <div class="container mx-auto px-4 text-center">
+    <h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white uppercase mb-4">SERVICII</h1>
+    <p class="text-gray-500 dark:text-gray-400 mb-12 italic text-lg">Lorem ipsum dolor sit amet consectetur.</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+      <!-- Card 1 galben-->
+      <div class="flex flex-col items-center text-center">
+        <div class="bg-yellow-400 rounded-full p-6 mb-4">
+          <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 576 512">
+            <path d="M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"/>
+          </svg>
+        </div>
+        <h2 class="text-xl font-semibold mb-2">Review-uri</h2>
+        <p class="text-gray-600 dark:text-gray-400 max-w-xs">Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p>
+      </div>
+
+      <!-- Card 2 galben-->
+      <div class="flex flex-col items-center text-center">
+        <div class="bg-yellow-400 rounded-full p-6 mb-4">
+          <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 640 512">
+            <path d="M128 32C92.7 32 64 60.7 64 96V352h64V96H512V352h64V96c0-35.3-28.7-64-64-64H128zM19.2 384C8.6 384 0 392.6 0 403.2C0 445.6 34.4 480 76.8 480H563.2c42.4 0 76.8-34.4 76.8-76.8c0-10.6-8.6-19.2-19.2-19.2H19.2z"/>
+          </svg>
+        </div>
+        <h2 class="text-xl font-semibold mb-2">Noutăți</h2>
+        <p class="text-gray-600 dark:text-gray-400 max-w-xs">Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p>
+      </div>
+
+      <!-- Card 3 galben-->
+      <div class="flex flex-col items-center text-center">
+        <div class="bg-yellow-400 rounded-full p-6 mb-4">
+          <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 448 512">
+            <path d="M144 144v48H304V144c0-44.2-35.8-80-80-80s-80 35.8-80 80zM80 192V144C80 64.5 144.5 0 224 0s144 64.5 144 144v48h16c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V256c0-35.3 28.7-64 64-64H80z"/>
+          </svg>
+        </div>
+        <h2 class="text-xl font-semibold mb-2">Informatii si surse acreditate </h2>
+        <p class="text-gray-600 dark:text-gray-400 max-w-xs">Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+  <main class="container mx-auto py-10 px-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="articlesection" />
+	
+	<!-- Modal -->
+	
+	<div class="modal fade" id="viewarticlecomplet" role="dialog">
+	  <div class="modal-dialog modal-dialog-scrollable" role="document">
+		<div class="modal-content">
+		  <div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			  <span aria-hidden="true">&times;</span>
+			</button>
+			<img src="" class="rounded-xl mb-4 h-48 w-full object-cover" loading="lazy" id="NewsModalImage">
+		 	<h5 class="modal-title" id="NewsModalTitle">Modal title</h5>
+		  </div>
+		  <div class="modal-body" id="NewsModalDescription">
+			Body description
+		  </div>
+		  <div class="modal-header">
+			<h5 class="modal-title" id="NewsModalOwner">Creat de:</h5>
+		  </div>
+		  <div class="modal-footer">
+			<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		  </div>
+		</div>
+	  </div>
+	</div>
+  
+  </main>
+
+  <footer class="bg-white dark:bg-gray-800 text-center text-gray-500 dark:text-gray-400 p-6 mt-10 shadow-inner">
+    © 2025 Blog Auto. Cruciat Corneliu.
+  </footer>
+
+  <script>
+    const toggleBtn = document.getElementById('toggleDark');
+    const html = document.documentElement;
+
+    if (localStorage.getItem('theme') === 'dark') {
+      html.classList.add('dark');
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      html.classList.toggle('dark');
+      const theme = html.classList.contains('dark') ? 'dark' : 'light';
+      localStorage.setItem('theme', theme);
+    });
+	
+	ShowArticles();
+  </script>
+</body>
+</html>
+
+
+<!-- ar merge:- sectiune de review-uri;comentarii pe baza articolelor; -->
